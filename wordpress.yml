@@ -1,0 +1,18 @@
+- name: Copy balanc url to config wordpress
+  hosts: tag_Project_X
+  become: yes
+
+  vars:
+    - site_url: "http://projectx-2018855994.eu-west-1.elb.amazonaws.com/"
+    - db_id: "mysqldb.cbvhjwlvuevz.eu-west-1.rds.amazonaws.com"
+
+  tasks:
+  - name: copy config file
+    template:
+      src: wp-config.php
+      dest: /var/www/html
+    notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
