@@ -10,36 +10,19 @@ terraform {
     region = "eu-west-1"
   }
 }
-#-------------------------------------------------------------------------------
-resource "aws_security_group" "project_security_group" {
-  name = "project_security_group"
-
-  dynamic "ingress" {
-    for_each = var.ports
-    content {
-      from_port   = ingress.value
-      to_port     = ingress.value
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = {
-    Name = "my_security_group"
-  }
+#MODULE SECURITY GROUP----------------------------------------------------------
+module "security_group" {
+  source = "/home/vlad/Project_X_ASG/modules/aws_security_group"
+  ports  = ["80", "22", "3306"]
+  name   = "Project"
 }
-#-------------------------------------------------------------------------------
+#LAUNCH CONFIGURATION-----------------------------------------------------------
 resource "aws_launch_configuration" "project" {
   #  name            = "web"
   name_prefix     = "projectx-"
   image_id        = data.aws_ami.latest_ubuntu.id
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.project_security_group.id]
+  security_groups = [module.security_group.security_group_id]
   key_name        = "ssh"
   user_data       = file("wordpress.sh")
 
@@ -47,7 +30,7 @@ resource "aws_launch_configuration" "project" {
     create_before_destroy = true
   }
 }
-#-------------------------------------------------------------------------------
+#AUTOSCALING GROUP--------------------------------------------------------------
 resource "aws_autoscaling_group" "project" {
   name                 = "ASG-${aws_launch_configuration.project.name}"
   launch_configuration = aws_launch_configuration.project.name

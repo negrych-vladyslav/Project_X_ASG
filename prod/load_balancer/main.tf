@@ -23,7 +23,7 @@ data "aws_availability_zones" "availability" {}
 resource "aws_elb" "project_x" {
   name               = "projectx"
   availability_zones = [data.aws_availability_zones.availability.names[0], data.aws_availability_zones.availability.names[1]]
-  security_groups    = [aws_security_group.load_balancer_sg.id]
+  security_groups    = [module.security_group.security_group_id]
   listener {
     instance_port     = 80
     instance_protocol = "http"
@@ -41,29 +41,13 @@ resource "aws_elb" "project_x" {
     Name = "web"
   }
 }
-resource "aws_security_group" "load_balancer_sg" {
-  name = "load_balancer_sg"
-
-  dynamic "ingress" {
-    for_each = ["80", "443"]
-    content {
-      from_port   = ingress.value
-      to_port     = ingress.value
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = {
-    Name = "load_balancer_sg"
-  }
+#===============================================================================
+module "security_group" {
+  source = "/home/vlad/Project_X_ASG/modules/aws_security_group"
+  ports  = ["80"]
+  name   = "load-balancer"
 }
-#-------------------------------------------------------------------------------
+#===============================================================================
 output "load_balancer_name" {
   value = aws_elb.project_x.name
 }
